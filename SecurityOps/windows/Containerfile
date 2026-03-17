@@ -1,0 +1,29 @@
+FROM debian:12-slim
+
+RUN dpkg --add-architecture i386 \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    bash \
+    wine \
+    wine32 \
+    wine64 \
+    xvfb \
+    libfreetype6 \
+    xauth \
+    xfonts-base \
+    tzdata \
+  && rm -rf /var/lib/apt/lists/*
+
+ENV WINEPREFIX=/analysis/wineprefix \
+  ZEROWINE_CMD=zerowine \
+  WINEARCH=win64 \
+  DISPLAY=:99 \
+  WINEDLLOVERRIDES="mscoree="
+
+WORKDIR /analysis
+RUN mkdir -p /analysis/wineprefix \
+  && chmod -R 777 /analysis
+
+ENTRYPOINT ["/bin/bash", "-lc"]
+CMD ["wine64"]

@@ -15,6 +15,7 @@ Current implemented module:
   - [Analysis scripts](SecurityOps/scripts/)
   - [Proxy/evidence/allowlist config](SecurityOps/config/)
   - [SecurityOps setup guide](SecurityOps/README.md)
+  - [Optional Windows execution track](SecurityOps/windows/README.md)
 
 ## SecurityOps quick start
 
