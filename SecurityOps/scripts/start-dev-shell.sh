@@ -16,6 +16,7 @@ usage() {
 Usage: start-dev-shell.sh [--command CMD...]
 
 Builds the SecurityOps dev shell image, assembles the Distrobox template, then opens the shell.
+If the container already exists, it is reused. Recreate it manually if you want a fresh shell.
 
 Examples:
   ./scripts/start-dev-shell.sh
@@ -50,7 +51,7 @@ else
   exit 1
 fi
 
-distrobox assemble create --replace --file "${MANIFEST}"
+distrobox assemble create --file "${MANIFEST}"
 
 if (( ${#ENTER_COMMAND[@]} > 0 )); then
   distrobox enter "${BOX_NAME}" -- "${ENTER_COMMAND[@]}"
