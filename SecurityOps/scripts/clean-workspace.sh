@@ -14,7 +14,9 @@ fi
 if [[ "$1" == "--all" ]]; then
   ids="$("${RUNTIME}" ps -a --filter "name=${FORENSIC_SESSION_PREFIX}" -q)"
   if [[ -n "${ids}" ]]; then
-    "${RUNTIME}" rm -f ${ids} >/dev/null || true
+    while IFS= read -r id; do
+      "${RUNTIME}" rm -f "${id}" >/dev/null || true
+    done <<< "${ids}"
   fi
   exit 0
 fi

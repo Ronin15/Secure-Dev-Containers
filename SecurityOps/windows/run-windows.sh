@@ -56,12 +56,15 @@ FNAME="$(basename "${SAMPLE_PATH}")"
 "${RUNTIME}" run --rm \
   --name "ir-windows-emul-$(date +%s)" \
   --read-only \
+  --tmpfs /analysis:rw,noexec,nosuid,nodev,size=1g,uid=1000,gid=1000,mode=700 \
   --security-opt no-new-privileges:true \
   --cap-drop ALL \
   --tmpfs /tmp:rw,noexec,nosuid,nodev,size=1g \
   -v "${WORKDIR}/input:/analysis/input:ro" \
   -v "${WORKDIR}/output:/analysis/output:rw" \
   -e WINEDEBUG=-all \
+  -e HOME=/home/forensics \
+  -e WINEPREFIX=/analysis/wineprefix \
   -e ZEROWINE_CMD="${ZEROWINE_CMD}" \
   "${WINDOWS_IMAGE}" \
   ${IMAGE_ENTRY} \

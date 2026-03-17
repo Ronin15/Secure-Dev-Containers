@@ -8,6 +8,9 @@ services:
     image: ${FORENSIC_PROXY_IMAGE:-forensics-squid-proxy:latest}
     container_name: forensics-proxy
     hostname: forensics-proxy
+    pids_limit: 1024
+    cpus: 1
+    mem_limit: 1g
     networks:
       forensics-egress:
         aliases:

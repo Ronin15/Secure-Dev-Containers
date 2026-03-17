@@ -34,6 +34,14 @@ detect_runtime() {
 }
 
 RUNTIME="${RUNTIME:-$(detect_runtime)}"
+if [[ -z "${RUNTIME}" ]]; then
+  echo "No supported runtime found. Install podman or docker and retry." >&2
+  exit 1
+fi
+if ! command -v "${RUNTIME}" >/dev/null 2>&1; then
+  echo "Configured runtime '${RUNTIME}' is not available." >&2
+  exit 1
+fi
 
 new_session_name() {
   local suffix
@@ -45,6 +53,10 @@ ensure_images() {
   if ! "${RUNTIME}" image inspect "${FORENSIC_IMAGE}" >/dev/null 2>&1; then
     "${RUNTIME}" build -t "${FORENSIC_IMAGE}" -f "${PROJECT_ROOT}/Containerfile" "${PROJECT_ROOT}"
   fi
+
+  if ! "${RUNTIME}" image inspect "${FORENSIC_PROXY_IMAGE}" >/dev/null 2>&1; then
+    "${RUNTIME}" build -t "${FORENSIC_PROXY_IMAGE}" -f "${PROJECT_ROOT}/Containerfile.proxy" "${PROJECT_ROOT}"
+  fi
 }
 
 collect_evidence() {
@@ -52,8 +64,10 @@ collect_evidence() {
   local session_dir="$2"
   local artifacts_dir="${session_dir}/artifacts"
   local tar_items=(artifacts output workspace)
+  local safe_tar_items=()
 
   mkdir -p "${artifacts_dir}"
+  mkdir -p "${session_dir}/output" "${session_dir}/workspace"
   {
     printf 'runtime=%s\n' "${RUNTIME}"
     printf 'container=%s\n' "${container_name}"
@@ -72,7 +86,13 @@ collect_evidence() {
     tar_items+=(input)
   fi
 
-  tar -C "${session_dir}" -czf "${session_dir}/evidence-${container_name}.tar.gz" "${tar_items[@]}"
+  for item in "${tar_items[@]}"; do
+    if [[ -e "${session_dir}/${item}" ]]; then
+      safe_tar_items+=("${item}")
+    fi
+  done
+
+  tar -C "${session_dir}" -czf "${session_dir}/evidence-${container_name}.tar.gz" "${safe_tar_items[@]}"
   sha256sum "${session_dir}/evidence-${container_name}.tar.gz" > "${artifacts_dir}/checksums.txt" || true
 }
 

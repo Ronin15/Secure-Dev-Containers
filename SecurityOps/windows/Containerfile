@@ -15,6 +15,8 @@ RUN dpkg --add-architecture i386 \
     tzdata \
   && rm -rf /var/lib/apt/lists/*
 
+RUN useradd --create-home --uid 1000 --shell /bin/bash forensics
+
 ENV WINEPREFIX=/analysis/wineprefix \
   ZEROWINE_CMD=zerowine \
   WINEARCH=win64 \
@@ -23,7 +25,9 @@ ENV WINEPREFIX=/analysis/wineprefix \
 
 WORKDIR /analysis
 RUN mkdir -p /analysis/wineprefix \
-  && chmod -R 777 /analysis
+  && chown -R forensics:forensics /analysis
+
+USER forensics
 
 ENTRYPOINT ["/bin/bash", "-lc"]
 CMD ["wine64"]

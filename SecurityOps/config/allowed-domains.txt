@@ -1,4 +1,7 @@
 # Default allowlist for controlled egress profile.
 # Entries are hostnames, one per line.
-example.com
-metadata.ubuntu.com
+#
+# Keep this file empty to deny all outbound egress by default.
+# Add explicit hostnames only after review.
+# e.g.
+# example.com

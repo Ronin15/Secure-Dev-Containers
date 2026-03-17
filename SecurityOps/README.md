@@ -54,8 +54,7 @@ Each run writes artifacts under `artifacts/<timestamp>/` and creates:
 
 ## Important note
 
-The controlled egress mode is intended to force traffic through the local proxy, but any
-direct network path controls outside the proxy should be reviewed for your threat model and host policy.
+The controlled egress mode forces traffic through the local proxy. Keep `config/allowed-domains.txt` explicit and minimal; an empty allowlist blocks all outbound by default.
 
 ## Files
 

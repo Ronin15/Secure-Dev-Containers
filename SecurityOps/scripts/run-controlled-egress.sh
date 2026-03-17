@@ -69,6 +69,15 @@ if [[ -n "${SAMPLE_PATH}" ]]; then
   cp -a "${SAMPLE_PATH}" "${SESSION_DIR}/input/"
 fi
 
+cleanup_analysis() {
+  cleanup_container "${SESSION_NAME}" || true
+}
+cleanup_full() {
+  cleanup_analysis
+  "${SCRIPT_DIR}/stop-egress-gateway.sh" || true
+}
+trap 'cleanup_full' EXIT INT TERM
+
 ensure_images
 "${SCRIPT_DIR}/start-egress-gateway.sh"
 
@@ -109,6 +118,4 @@ RUN_EXIT=$?
 set -e
 
 collect_evidence "${SESSION_NAME}" "${SESSION_DIR}"
-cleanup_container "${SESSION_NAME}"
-"${SCRIPT_DIR}/stop-egress-gateway.sh"
 exit "${RUN_EXIT}"

@@ -72,6 +72,11 @@ if [[ -n "${SAMPLE_PATH}" ]]; then
   cp -a "${SAMPLE_PATH}" "${SESSION_DIR}/input/"
 fi
 
+cleanup_analysis() {
+  cleanup_container "${SESSION_NAME}" || true
+}
+trap 'cleanup_analysis' EXIT INT TERM
+
 ensure_images
 
 RUNTIME_OPTS=(
@@ -107,5 +112,4 @@ RUN_EXIT=$?
 set -e
 
 collect_evidence "${SESSION_NAME}" "${SESSION_DIR}"
-cleanup_container "${SESSION_NAME}"
 exit "${RUN_EXIT}"

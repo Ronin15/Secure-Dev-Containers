@@ -11,10 +11,32 @@ if ! "${RUNTIME}" network inspect "${FORENSIC_NETWORK}" >/dev/null 2>&1; then
   "${RUNTIME}" network create "${FORENSIC_NETWORK}" >/dev/null
 fi
 
+wait_for_proxy_ready() {
+  local attempts=20
+  local i=1
+
+  while (( i <= attempts )); do
+    if "${RUNTIME}" exec "${GATEWAY_NAME}" squid -k check -f /etc/squid/squid.conf >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+    ((i += 1))
+  done
+
+  return 1
+}
+
 if "${RUNTIME}" container inspect "${GATEWAY_NAME}" >/dev/null 2>&1; then
-  "${RUNTIME}" start "${GATEWAY_NAME}" >/dev/null
+  if [[ "$("${RUNTIME}" inspect --format '{{.State.Running}}' "${GATEWAY_NAME}" 2>/dev/null || true)" != "true" ]]; then
+    "${RUNTIME}" start "${GATEWAY_NAME}" >/dev/null
+  fi
   echo "Gateway already exists: ${GATEWAY_NAME}"
-  exit 0
+  if wait_for_proxy_ready; then
+    exit 0
+  fi
+  echo "Existing gateway failed readiness check." >&2
+  "${RUNTIME}" logs "${GATEWAY_NAME}" >&2 || true
+  exit 1
 fi
 
 echo "Starting proxy gateway: ${GATEWAY_NAME}"
@@ -30,4 +52,11 @@ echo "Starting proxy gateway: ${GATEWAY_NAME}"
   --cap-drop ALL \
   "${FORENSIC_PROXY_IMAGE}"
 
-sleep 2
+if wait_for_proxy_ready; then
+  exit 0
+fi
+
+echo "Proxy gateway failed to become ready." >&2
+"${RUNTIME}" logs "${GATEWAY_NAME}" >&2 || true
+"${RUNTIME}" rm -f "${GATEWAY_NAME}" >/dev/null 2>&1 || true
+exit 1
