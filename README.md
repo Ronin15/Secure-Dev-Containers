@@ -23,11 +23,11 @@ Current implemented module:
 
 The SecurityOps module provides a hardened analysis sandbox intended to be run from a container shell environment such as DistroShelf-managed Distrobox or Toolbx:
 
-- Use `./scripts/start-dev-shell.sh` to build the secure dev shell image and enter the container shell context
-- Run the project from inside that shell
-- Offline-by-default mode is enforced by the secure shell context itself
-- Optional controlled egress mode via a local Squid process in the same shell
-- Read-only container filesystem, dropped Linux capabilities, and automated evidence capture
+- Build the secure dev shell image and enter the container shell with `./scripts/start-dev-shell.sh`
+- Run all workflow scripts from inside that shell
+- Offline mode uses the shell context directly
+- Controlled egress starts a local Squid process in the same shell
+- Read-only filesystem, dropped Linux capabilities, and automated evidence capture are built into the workflow
 
 ```bash
 cd SecurityOps
@@ -44,13 +44,6 @@ cd SecurityOps
 
 If you are launching from DistroShelf, open the project inside that container shell and run the same scripts there.
 
-To generate the container shell template and enter it:
-
-```bash
-cd SecurityOps
-./scripts/start-dev-shell.sh
-```
-
 For setup and behavior details:
 
 - [SecurityOps README](SecurityOps/README.md)
@@ -58,10 +51,10 @@ For setup and behavior details:
 ## What’s included
 
 - A secure dev shell image that carries the supported workflow tools.
-- A container shell template that is created from that image.
-- Container-first analysis workflow.
-- Offline-by-default analysis mode with no external network.
-- Optional controlled egress mode using a local Squid allowlist gateway in the same shell.
+- A container shell template created from that image.
+- A shell-first analysis workflow.
+- Offline analysis mode with no external network.
+- Controlled egress mode using a local Squid process in the same shell.
 - Read-only container root filesystem and dropped Linux capabilities.
 - Automated post-run forensic evidence capture.
 
@@ -72,12 +65,3 @@ cd SecurityOps
 ./scripts/start-dev-shell.sh
 ./scripts/run-offline.sh --sample /path/to/sample.bin
 ```
-
-For controlled egress:
-
-```bash
-cd SecurityOps
-./scripts/run-controlled-egress.sh --sample /path/to/sample.bin
-```
-
-For setup, usage details, and security caveats, use the SecurityOps readme.

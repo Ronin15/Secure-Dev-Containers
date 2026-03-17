@@ -1,7 +1,7 @@
 FROM debian:12-slim
 
-LABEL org.opencontainers.image.title="IR Malware Analysis Sandbox"
-LABEL org.opencontainers.image.description="Minimal rootless-friendly analysis image for isolated malware triage."
+LABEL org.opencontainers.image.title="IR Malware Analysis Sandbox Base"
+LABEL org.opencontainers.image.description="Analysis base image for the SecurityOps shell workflow."
 
 ENV DEBIAN_FRONTEND=noninteractive
 

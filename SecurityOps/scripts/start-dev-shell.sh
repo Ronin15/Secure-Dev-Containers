@@ -15,11 +15,11 @@ usage() {
   cat <<EOF
 Usage: start-dev-shell.sh [--command CMD...]
 
-Creates the SecurityOps Distrobox template if needed, then opens the shell.
+Builds the SecurityOps dev shell image, assembles the Distrobox template, then opens the shell.
 
 Examples:
   ./scripts/start-dev-shell.sh
-  ./scripts/start-dev-shell.sh --command bash -lc 'cd ~/Projects/containers/Secure-Dev-Containers/SecurityOps && ./scripts/run-offline.sh --help'
+  ./scripts/start-dev-shell.sh --command bash -lc 'cd SecurityOps && ./scripts/run-offline.sh --help'
 EOF
 }
 

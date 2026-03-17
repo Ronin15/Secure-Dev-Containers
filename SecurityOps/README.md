@@ -2,7 +2,7 @@
 
 This repository module provides a hardened, lightweight **Linux-only** analysis sandbox for malware triage with:
 
-- Container-shell-first runtime support for DistroShelf-managed Distrobox or Toolbx environments
+- Container-shell-first support for DistroShelf-managed Distrobox or Toolbx environments
 - A secure dev shell image that carries the supported analysis tooling
 - Offline mode with external network disabled by the secure shell context
 - Optional allowlist-based egress profile through a local Squid process in the same shell
@@ -13,7 +13,7 @@ Windows analysis is intentionally not part of this module and should be handled 
 
 ## Quick setup
 
-1. Enter the secure shell context:
+1. Build the secure shell image and enter the shell context:
 
 ```bash
 ./scripts/start-dev-shell.sh
@@ -33,11 +33,11 @@ Windows analysis is intentionally not part of this module and should be handled 
 
 ## Container shell workflow
 
-This project is intended to be run from inside a container shell environment.
+This project is intended to be run from inside a single secure container shell environment.
 
-The secure dev shell image is the buildable workflow image; it carries the supported tools and is used to create the shell context where the scripts run.
+The secure dev shell image is the build artifact for that environment; it carries the supported tools and is used to create the shell context where the scripts run.
 
-To generate and enter the Distrobox template:
+To build the secure shell image and enter the Distrobox template:
 
 ```bash
 ./scripts/start-dev-shell.sh
@@ -50,8 +50,8 @@ If you use DistroShelf, Distrobox, or Toolbx, open the repository inside that sh
 - Read-only root filesystem in the secure shell image
 - `no-new-privileges`
 - `--cap-drop ALL`
-- Offline runs are expected to execute in a shell context that was started without network access
-- Controlled egress runs use a local Squid process and explicit proxy environment variables
+- Offline runs execute in the shell context with network disabled
+- Controlled egress runs start a local Squid process and set proxy variables in the same shell
 - Session roots contain real `input/`, `output/`, and `artifacts/` directories
 - Evidence stays under the session directory unless you explicitly set `--output`
 
