@@ -1,0 +1,18 @@
+FROM debian:12-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends squid \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY config/squid.conf /etc/squid/squid.conf
+COPY config/allowed-domains.txt /etc/squid/allowed-domains.acl
+
+RUN mkdir -p /var/spool/squid /var/log/squid \
+  && chown -R proxy:proxy /var/spool/squid /var/log/squid
+
+EXPOSE 3128/tcp
+USER proxy
+ENTRYPOINT ["squid"]
+CMD ["-N", "-f", "/etc/squid/squid.conf"]

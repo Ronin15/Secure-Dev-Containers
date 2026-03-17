@@ -1,0 +1,4 @@
+# Default allowlist for controlled egress profile.
+# Entries are hostnames, one per line.
+example.com
+metadata.ubuntu.com

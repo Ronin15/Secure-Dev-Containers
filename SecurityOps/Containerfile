@@ -1,0 +1,32 @@
+FROM debian:12-slim
+
+LABEL org.opencontainers.image.title="IR Malware Analysis Sandbox"
+LABEL org.opencontainers.image.description="Minimal rootless-friendly analysis image for isolated malware triage."
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    procps \
+    psmisc \
+    lsof \
+    strace \
+    tcpdump \
+    iproute2 \
+    iputils-ping \
+    dnsutils \
+    file \
+    python3 \
+    python3-pip \
+    less \
+    vim-tiny \
+    bash \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN useradd --create-home --uid 1000 --shell /bin/bash forensics
+
+WORKDIR /analysis
+USER forensics
+ENTRYPOINT ["/bin/bash"]
+CMD ["-l"]
