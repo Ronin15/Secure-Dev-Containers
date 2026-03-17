@@ -9,8 +9,8 @@ usage() {
   cat <<'EOF'
 Usage: run-controlled-egress.sh [--sample PATH] [--output PATH] [--command CMD...]
 
-Starts the analysis container with an allowlist DNS/HTTP(S) proxy path.
-Gateway start/stop is managed automatically around the session.
+Starts the local Squid gateway inside the secure shell context, then runs the workflow command
+with proxy variables pointed at that gateway.
 EOF
 }
 
@@ -58,7 +58,7 @@ else
   SESSION_DIR="${OUTPUT_DIR}"
 fi
 
-mkdir -p "${SESSION_DIR}/workspace" "${SESSION_DIR}/output" "${SESSION_DIR}/artifacts"
+mkdir -p "${SESSION_DIR}/input" "${SESSION_DIR}/output" "${SESSION_DIR}/artifacts"
 
 if [[ -n "${SAMPLE_PATH}" ]]; then
   if [[ ! -e "${SAMPLE_PATH}" ]]; then
@@ -69,53 +69,32 @@ if [[ -n "${SAMPLE_PATH}" ]]; then
   cp -a "${SAMPLE_PATH}" "${SESSION_DIR}/input/"
 fi
 
-cleanup_analysis() {
-  cleanup_container "${SESSION_NAME}" || true
-}
 cleanup_full() {
-  cleanup_analysis
-  "${SCRIPT_DIR}/stop-egress-gateway.sh" || true
+  if [[ "${cleanup_done}" -eq 0 ]]; then
+    cleanup_done=1
+    stop_local_proxy "${SESSION_DIR}" || true
+    collect_evidence "${SESSION_NAME}" "${SESSION_DIR}" || true
+  fi
 }
+cleanup_done=0
 trap 'cleanup_full' EXIT INT TERM
 
-ensure_images
-"${SCRIPT_DIR}/start-egress-gateway.sh"
-
-RUNTIME_OPTS=(
-  --name "${SESSION_NAME}"
-  --hostname "${SESSION_NAME}"
-  --network "${FORENSIC_NETWORK}"
-  --read-only
-  --pids-limit "${FORENSIC_PIDS_LIMIT:-1024}"
-  --memory "${FORENSIC_MEMORY_LIMIT:-2g}"
-  --cpus "${FORENSIC_CPU_LIMIT:-2}"
-  --security-opt no-new-privileges:true
-  --cap-drop ALL
-  --tmpfs /tmp:rw,noexec,nosuid,nodev,size="${FORENSIC_TMPFS_SIZE:-2g}"
-  --tmpfs /analysis:rw,noexec,nosuid,nodev,size=1g
-  -e http_proxy=http://proxy:3128
-  -e https_proxy=http://proxy:3128
-  -e ALL_PROXY=http://proxy:3128
-  -e all_proxy=http://proxy:3128
-  -v "${SESSION_DIR}/workspace:/analysis/workspace:rw"
-  -v "${SESSION_DIR}/output:/analysis/output:rw"
-)
-
-if [[ -d "${SESSION_DIR}/input" ]]; then
-  RUNTIME_OPTS+=(-v "${SESSION_DIR}/input:/analysis/input:ro")
-fi
-
-if [[ "${RUNTIME}" == "podman" ]]; then
-  RUNTIME_OPTS+=(--userns=keep-id)
-fi
-
-echo "Starting controlled egress analysis container: ${SESSION_NAME}"
+echo "Starting controlled egress workflow in shell context: ${SESSION_NAME}"
 echo "Evidence bundle path: ${SESSION_DIR}"
 
+start_local_proxy "${SESSION_DIR}"
+
 set +e
-"${RUNTIME}" run -it "${RUNTIME_OPTS[@]}" "${FORENSIC_IMAGE}" "${COMMAND[@]}"
+(cd "${SESSION_DIR}" && env \
+  http_proxy="http://127.0.0.1:${FORENSIC_PROXY_PORT}" \
+  https_proxy="http://127.0.0.1:${FORENSIC_PROXY_PORT}" \
+  HTTP_PROXY="http://127.0.0.1:${FORENSIC_PROXY_PORT}" \
+  HTTPS_PROXY="http://127.0.0.1:${FORENSIC_PROXY_PORT}" \
+  ALL_PROXY="http://127.0.0.1:${FORENSIC_PROXY_PORT}" \
+  all_proxy="http://127.0.0.1:${FORENSIC_PROXY_PORT}" \
+  "${COMMAND[@]}")
 RUN_EXIT=$?
 set -e
 
-collect_evidence "${SESSION_NAME}" "${SESSION_DIR}"
+cleanup_full
 exit "${RUN_EXIT}"

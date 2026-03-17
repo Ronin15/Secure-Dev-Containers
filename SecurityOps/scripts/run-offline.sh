@@ -9,11 +9,12 @@ usage() {
   cat <<'EOF'
 Usage: run-offline.sh [--sample PATH] [--output PATH] [--command CMD...]
 
-Starts an analysis container with no network access.
+Runs the workflow command directly inside the secure shell context with no proxy settings.
+The outer container context should already be offline or network-restricted.
 
 Examples:
   ./run-offline.sh --sample /tmp/suspicious.exe
-  ./run-offline.sh --sample /tmp/suspicious.exe --command /bin/bash -lc "sha256sum /analysis/input/suspicious.exe"
+  ./run-offline.sh --sample /tmp/suspicious.exe --command /bin/bash -lc "sha256sum input/suspicious.exe"
 EOF
 }
 
@@ -61,7 +62,7 @@ else
   SESSION_DIR="${OUTPUT_DIR}"
 fi
 
-mkdir -p "${SESSION_DIR}/workspace" "${SESSION_DIR}/output" "${SESSION_DIR}/artifacts"
+mkdir -p "${SESSION_DIR}/input" "${SESSION_DIR}/output" "${SESSION_DIR}/artifacts"
 
 if [[ -n "${SAMPLE_PATH}" ]]; then
   if [[ ! -e "${SAMPLE_PATH}" ]]; then
@@ -72,44 +73,22 @@ if [[ -n "${SAMPLE_PATH}" ]]; then
   cp -a "${SAMPLE_PATH}" "${SESSION_DIR}/input/"
 fi
 
+cleanup_done=0
 cleanup_analysis() {
-  cleanup_container "${SESSION_NAME}" || true
+  if [[ "${cleanup_done}" -eq 0 ]]; then
+    cleanup_done=1
+    collect_evidence "${SESSION_NAME}" "${SESSION_DIR}" || true
+  fi
 }
 trap 'cleanup_analysis' EXIT INT TERM
 
-ensure_images
-
-RUNTIME_OPTS=(
-  --name "${SESSION_NAME}"
-  --hostname "${SESSION_NAME}"
-  --read-only
-  --network none
-  --pids-limit "${FORENSIC_PIDS_LIMIT:-1024}"
-  --memory "${FORENSIC_MEMORY_LIMIT:-2g}"
-  --cpus "${FORENSIC_CPU_LIMIT:-2}"
-  --security-opt no-new-privileges:true
-  --cap-drop ALL
-  --tmpfs /tmp:rw,noexec,nosuid,nodev,size="${FORENSIC_TMPFS_SIZE:-2g}"
-  --tmpfs /analysis:rw,noexec,nosuid,nodev,size=1g
-  -v "${SESSION_DIR}/workspace:/analysis/workspace:rw"
-  -v "${SESSION_DIR}/output:/analysis/output:rw"
-)
-
-if [[ -d "${SESSION_DIR}/input" ]]; then
-  RUNTIME_OPTS+=(-v "${SESSION_DIR}/input:/analysis/input:ro")
-fi
-
-if [[ "${RUNTIME}" == "podman" ]]; then
-  RUNTIME_OPTS+=(--userns=keep-id)
-fi
-
-echo "Starting offline analysis container: ${SESSION_NAME}"
+echo "Starting offline workflow in shell context: ${SESSION_NAME}"
 echo "Evidence bundle path: ${SESSION_DIR}"
 
 set +e
-"${RUNTIME}" run -it "${RUNTIME_OPTS[@]}" "${FORENSIC_IMAGE}" "${COMMAND[@]}"
+(cd "${SESSION_DIR}" && env -u http_proxy -u https_proxy -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u all_proxy "${COMMAND[@]}")
 RUN_EXIT=$?
 set -e
 
-collect_evidence "${SESSION_NAME}" "${SESSION_DIR}"
+cleanup_analysis
 exit "${RUN_EXIT}"

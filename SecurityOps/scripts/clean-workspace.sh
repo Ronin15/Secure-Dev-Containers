@@ -6,22 +6,32 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/common.sh"
 
 if (( $# == 0 )); then
-  echo "Usage: clean-workspace.sh <container-name-or-id> [container-name-or-id...]"
-  echo "Usage: clean-workspace.sh --all [to remove all stopped forensics containers]"
+  echo "Usage: clean-workspace.sh <session-name-or-path> [session-name-or-path...]"
+  echo "Usage: clean-workspace.sh --all [to remove all session directories]"
   exit 1
 fi
 
-if [[ "$1" == "--all" ]]; then
-  ids="$("${RUNTIME}" ps -a --filter "name=${FORENSIC_SESSION_PREFIX}" -q)"
-  if [[ -n "${ids}" ]]; then
-    while IFS= read -r id; do
-      "${RUNTIME}" rm -f "${id}" >/dev/null || true
-    done <<< "${ids}"
+remove_session_path() {
+  local target="$1"
+  local path
+
+  if [[ -d "$target" ]]; then
+    path="$target"
+  else
+    path="${FORENSIC_EVIDENCE_ROOT}/${target}"
   fi
+
+  if [[ -e "$path" ]]; then
+    rm -rf "$path"
+  fi
+}
+
+if [[ "$1" == "--all" ]]; then
+  find "${FORENSIC_EVIDENCE_ROOT}" -mindepth 1 -maxdepth 1 -type d -name "${FORENSIC_SESSION_PREFIX}-*" -exec rm -rf {} +
   exit 0
 fi
 
 while (( $# > 0 )); do
-  "${RUNTIME}" rm -f "$1"
+  remove_session_path "$1"
   shift
 done

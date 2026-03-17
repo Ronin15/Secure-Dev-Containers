@@ -1,0 +1,24 @@
+ARG BASE_IMAGE=forensics-sandbox:latest
+FROM ${BASE_IMAGE}
+
+LABEL org.opencontainers.image.title="SecurityOps Dev Shell"
+LABEL org.opencontainers.image.description="Secure container shell for the SecurityOps workflows."
+
+USER root
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    git \
+    jq \
+    make \
+    shellcheck \
+    squid \
+    tar \
+  && rm -rf /var/lib/apt/lists/*
+
+USER forensics
+
+WORKDIR /workspace
+ENTRYPOINT ["/bin/bash", "-l"]

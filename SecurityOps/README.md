@@ -2,23 +2,24 @@
 
 This repository module provides a hardened, lightweight **Linux-only** analysis sandbox for malware triage with:
 
-- Rootless-first container runtime support (Podman preferred, Docker compatible)
-- Offline mode with external network disabled by default
-- Optional allowlist-based egress profile through a local Squid gateway
+- Container-shell-first runtime support for DistroShelf-managed Distrobox or Toolbx environments
+- A secure dev shell image that carries the supported analysis tooling
+- Offline mode with external network disabled by the secure shell context
+- Optional allowlist-based egress profile through a local Squid process in the same shell
 - Read-only container root filesystem and dropped capabilities
-- Automated evidence capture (inspect, logs, process state, diff, tarball)
+- Automated evidence capture (shell state, process/network state, checksums, tarball)
 
 Windows analysis is intentionally not part of this module and should be handled in a separate containerized Windows workflow.
 
 ## Quick setup
 
-1. Build required images:
+1. Enter the secure shell context:
 
 ```bash
-./scripts/build.sh
+./scripts/start-dev-shell.sh
 ```
 
-2. Run an offline analysis:
+2. Run an offline analysis from inside that shell:
 
 ```bash
 ./scripts/run-offline.sh --sample /path/to/sample.bin
@@ -30,41 +31,61 @@ Windows analysis is intentionally not part of this module and should be handled 
 ./scripts/run-controlled-egress.sh --sample /path/to/sample.bin
 ```
 
+## Container shell workflow
+
+This project is intended to be run from inside a container shell environment.
+
+The secure dev shell image is the buildable workflow image; it carries the supported tools and is used to create the shell context where the scripts run.
+
+To generate and enter the Distrobox template:
+
+```bash
+./scripts/start-dev-shell.sh
+```
+
+If you use DistroShelf, Distrobox, or Toolbx, open the repository inside that shell and run the scripts there.
+
 ## Default security controls
 
-- Read-only root filesystem in container
+- Read-only root filesystem in the secure shell image
 - `no-new-privileges`
 - `--cap-drop ALL`
-- Private PID/network namespace behavior (`network_mode: none` in offline mode)
-- Temp filesystems for `/tmp` and `/analysis`
-- Host workspace mounted read-write only for explicit output path
+- Offline runs are expected to execute in a shell context that was started without network access
+- Controlled egress runs use a local Squid process and explicit proxy environment variables
+- Session roots contain real `input/`, `output/`, and `artifacts/` directories
+- Evidence stays under the session directory unless you explicitly set `--output`
 
 ## Generated artifact bundle
 
 Each run writes artifacts under `artifacts/<timestamp>/` and creates:
 
-- `artifacts/inspect.json`
-- `artifacts/logs.txt`
+- `artifacts/uname.txt`
+- `artifacts/id.txt`
 - `artifacts/ps.txt`
 - `artifacts/top.txt`
-- `artifacts/diff.txt`
-- `artifacts/stats.txt`
+- `artifacts/lsof.txt`
+- `artifacts/ip-addr.txt`
+- `artifacts/ip-route.txt`
 - `artifacts/metadata.txt`
+- `artifacts/sha256sums.txt`
+- `artifacts/checksums.txt`
 - `evidence-<container>.tar.gz`
 
 ## Important note
 
-The controlled egress mode forces traffic through the local proxy. Keep `config/allowed-domains.txt` explicit and minimal; an empty allowlist blocks all outbound by default.
+The controlled egress mode forces traffic through the local Squid process. Keep `config/allowed-domains.txt` explicit and minimal; an empty allowlist blocks all outbound by default.
 
 ## Files
 
-- `Containerfile` - analysis image
-- `Containerfile.proxy` - Squid proxy image for egress allowlist mode
+- `distrobox.ini` - Distrobox template for the SecurityOps container shell
+- `dev/Containerfile` - secure SecurityOps dev-shell image
+- `Containerfile` - analysis base image used by the secure shell build
 - `windows/` - optional Windows binary execution helper (ZeroWine-first, Wine fallback)
-- `compose.offline.yml` - docker/podman compose for offline mode
-- `compose.egress.yml` - compose for allowlist egress mode
 - `config/squid.conf` - Squid ACL configuration
 - `config/allowed-domains.txt` - editable allowlist
+- `scripts/build.sh` - build the secure dev shell image
+- `scripts/build-dev-shell.sh` - build the SecurityOps dev-shell image
+- `scripts/start-dev-shell.sh` - generate and enter the Distrobox shell
 - `scripts/*` - execution and maintenance helpers
 
 ## Windows file execution (separate track)
