@@ -1,7 +1,7 @@
 # Secure-Dev-Containers
 
 This repository is a central catalog for secure containerization patterns, including
-hardening guidance for both secure development and security operations workloads.
+hardening guidance for both secure development and security operations workloads. ......... WORK IN PROGRESS
 
 - Secure Development Containers: templates, hardening baseline patterns, and practical
   examples for safe containerized development.
